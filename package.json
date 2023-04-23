@@ -1,0 +1,14 @@
+{
+  "name": "agent-managed-memory",
+  "version": "1.0.0",
+  "description": "Minimal implementation of LLM Agent managing its own context window.",
+  "repository": "https://github.com/nsbradford/AgentManagedMemory",
+  "author": "nsbradford <nsbradford@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "openai": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.0"
+  }
+}
