@@ -3,56 +3,16 @@ import {
   ChatCompletionRequestMessage,
   Configuration,
 } from 'openai';
+import { State, AgentAction, Tool } from './types';
+import { FinalAnswerTool, ReadTool } from './tools';
+import { FINAL_ANSWER, INVALID_JSON, buildBaseSystem } from './prompts';
 
-const INVALID_JSON = 'INVALID_JSON';
-const FINAL_ANSWER = 'Final Answer'
-export interface AgentAction {
-  thought: string;
-  tool: string;
-  toolInput: string;
-  raw: string;
-};
 
-export interface AgentStep {
-  action: AgentAction;
-  result: string;
-};
-
-export interface Tool {
-  name: string;
-  call(arg: string): Promise<string>;
-}
-
-export interface MemoryEntry {
-  id: string; // UUID
-  contentLines: string[];
-}
-
-export interface State {
-  steps: AgentStep[];
-  memory: string[];
-}
-
-class ReadTool implements Tool {
-  name = 'read';
-  call(arg: string): Promise<string> {
-    // TODO: read from memory
-    return Promise.resolve(arg);
-  }
-}
-
-class FinalAnswerTool implements Tool {
-  name = FINAL_ANSWER;
-  call(arg: string): Promise<string> {
-    return Promise.resolve(arg);
-  }
-}
-
-async function buildChatMessages(state: State): Promise<ChatCompletionRequestMessage[]> {
+async function buildChatMessages(state: State, tools: Tool[]): Promise<ChatCompletionRequestMessage[]> {
   return [
     {
       role: 'system',
-      content: 'Please do X.',
+      content: buildBaseSystem(tools),
     },
     {
       role: 'user',
@@ -61,10 +21,6 @@ async function buildChatMessages(state: State): Promise<ChatCompletionRequestMes
   ];
 }
 
-
-/**
- * Guaranteed to be called only with valid history
- */
 async function getLLMAction(messages: ChatCompletionRequestMessage[]): Promise<AgentAction> {
   const apiKey = process.env.OPENAI_API_KEY ?? 'MISSING KEY';
   const openai = new OpenAIApi(new Configuration({ apiKey }));
@@ -100,7 +56,7 @@ async function runAgent() {
   }
 
   while (true) {
-    const prompt = await buildChatMessages(state);
+    const prompt = await buildChatMessages(state, tools);
     const action = await getLLMAction(prompt);
     let result;
     if (action.tool === INVALID_JSON) {
