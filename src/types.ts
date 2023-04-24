@@ -19,10 +19,8 @@ export interface Tool {
 
 export interface MemoryEntry {
   id: string; // UUID
-  contentLines: string[];
+  currentContent: string;
+  step: AgentStep;
 }
 
-export interface State {
-  steps: AgentStep[];
-  memory: string[];
-}
+export type Memory = MemoryEntry[];

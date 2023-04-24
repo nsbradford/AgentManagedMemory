@@ -3,12 +3,13 @@ import {
   ChatCompletionRequestMessage,
   Configuration,
 } from 'openai';
-import { State, AgentAction, Tool } from './types';
+import { AgentAction, Tool, MemoryEntry, Memory } from './types';
 import { FinalAnswerTool, ReadTool } from './tools';
 import { FINAL_ANSWER, INVALID_JSON, buildBaseSystem } from './prompts';
+import { v4 } from 'uuid';
 
 
-async function buildChatMessages(state: State, tools: Tool[]): Promise<ChatCompletionRequestMessage[]> {
+async function buildChatMessages(memory: Memory, tools: Tool[]): Promise<ChatCompletionRequestMessage[]> {
   return [
     {
       role: 'system',
@@ -16,7 +17,7 @@ async function buildChatMessages(state: State, tools: Tool[]): Promise<ChatCompl
     },
     {
       role: 'user',
-      content: state.memory.join('\n'),
+      content: memory.join('\n'),
     }
   ];
 }
@@ -44,19 +45,27 @@ async function getLLMAction(messages: ChatCompletionRequestMessage[]): Promise<A
       toolInput: '',
       raw: text,
     }
-  }
-  
+  } 
+}
+
+async function summarizeMemory(memory: Memory): Promise<Memory> {
+  return [];
+}
+
+function stepToMemoryEntry(action: AgentAction, result: string): MemoryEntry {
+  const step = { action, result };
+  return {
+    id: v4(),
+    currentContent: result,
+    step,
+  };
 }
 
 async function runAgent() {
   const tools = [new ReadTool(), new FinalAnswerTool()];
-  const state: State = {
-    steps: [],
-    memory: []
-  }
-
+  let memory: Memory = []
   while (true) {
-    const prompt = await buildChatMessages(state, tools);
+    const prompt = await buildChatMessages(memory, tools);
     const action = await getLLMAction(prompt);
     let result;
     if (action.tool === INVALID_JSON) {
@@ -68,12 +77,12 @@ async function runAgent() {
           ? await tool.call(action.toolInput)
           : `Tool not found: '${action.tool}'. Valid tools: ${tools.map(t => t.name).join(', ')}`;
     }
-    const step = { action, result };
-    state.steps.push(step)
-    if (step.action.tool === FINAL_ANSWER) {
+    if (action.tool === FINAL_ANSWER) {
       console.log(`Agent returned final answer: ${result}`);
       break;
     }
+    memory.push((stepToMemoryEntry(action, result)))
+    memory = await summarizeMemory(memory);
   }
 }
 

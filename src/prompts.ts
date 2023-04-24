@@ -25,3 +25,18 @@ The $JSON_BLOB should only contain a SINGLE action, do NOT return a list of mult
 export function buildBaseSystem(tools: Tool[]): string {
   return buildSystem(`You have access to the following tools:`, suffix, tools);
 }
+
+
+const scenario = `You are an expert software engineer fixing issues in a branch according to PR comments. You have received the following comment:
+
+\`\`\`diff
+@@ -7,2 +7,2 @@
+-const result = 'PLACEHOLDER'; // TODO
++const result = await callXYZApi(');
+\`\`\`
+
+Comment by "ILoveGPUs123" at file 'src/foo.ts' on line 7:
+> This is not the right way to call the XYZ API. I don’t remember what it is exactly, but it’s somewhere in ApiHelpers.tsx. Find the name of that function.”
+
+Figure out
+`
